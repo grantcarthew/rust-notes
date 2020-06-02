@@ -203,7 +203,7 @@ fn main() {
 
 By default variables are immutable.
 
-Declare variables with either `let` or `const`
+Declare variables with either `let` or `const`:
 
 ```rust
 let x = 4;
@@ -218,7 +218,7 @@ Constants or `const` variables:
 * Can be declared in any scope including global.
 * Can only be set by a constant expression (not computed at runtime).
 
-You can make variables mutable by adding `mut` in front of the variable name.
+You can make variables mutable by adding `mut` in front of the variable name:
 
 ```rust
 let mut x = 5;
@@ -226,7 +226,7 @@ x = 6;
 ```
 
 You can shadow variables by re-using the variable name with the let keyword.
-Shadowing enables changing the type assigned to the variable name.
+Shadowing enables changing the type assigned to the variable name:
 
 ```rust
 let x = 5;
@@ -244,7 +244,7 @@ A scalar type represents a single value. Rust supports four primary scalar types
 ##### Integers
 
 Rust performs two’s complement wrapping. Values greater than the maximum value the type can hold “wrap around”
-to the minimum of the values the type can hold.
+to the minimum of the values the type can hold:
 
 ```rust
 let x: i32 = -1000;
@@ -284,7 +284,7 @@ let x: f32 = 199.99;
 
 ##### Boolean
 
-Boolean `true` or `false` specified with the keyword `bool`.
+Boolean `true` or `false` specified with the keyword `bool`:
 
 ```rust
 let x: bool = true;
@@ -294,7 +294,7 @@ let x: bool = true;
 
 The character type is four bytes in size and represents a Unicode Scalar Value.
 
-Character literals are specified with single quotes.
+Character literals are specified with single quotes:
 
 ```rust
 let x = 'X';
@@ -308,7 +308,7 @@ Compound types can group multiple values into one type. Rust has two primitive c
 
 A tuple is a general way of grouping together a number of values with a variety of types into one compound type.
 
-Tuples are created by writing a comma-separated list of values inside parentheses.
+Tuples are created by writing a comma-separated list of values inside parentheses:
 
 ```rust
 let tup: (i32, f64, u8) = (500, 6.4, 1);
@@ -322,7 +322,7 @@ let z = tup.2;
 
 ##### Array
 
-Every element of an array must have the same type and they are of a fixed length.
+Every element of an array must have the same type and they are of a fixed length:
 
 ```rust
 let a = [1,2,3,4,5];
@@ -332,7 +332,7 @@ let a: [i32; 5] = [1,2,3,4,5];
 let a = [3, 5];
 ```
 
-Array elements can be accessed using indexing.
+Array elements can be accessed using indexing:
 
 ```rust
 let a = [1,2,3,4,5];
@@ -439,7 +439,7 @@ fn main() {
 
 #### Loop
 
-A continuous loop.
+A continuous loop:
 
 ```rust
 fn main() {
@@ -449,7 +449,7 @@ fn main() {
 }
 ```
 
-Returning values from loops.
+Returning values from loops:
 
 ```rust
 fn main() {
@@ -467,7 +467,7 @@ fn main() {
 }
 ```
 
-An example of a `while` loop.
+An example of a `while` loop:
 
 ```rust
 fn main() {
@@ -483,7 +483,7 @@ fn main() {
 }
 ```
 
-An example of a `for` loop.
+An example of a `for` loop:
 
 ```rust
 fn main() {
@@ -495,7 +495,7 @@ fn main() {
 }
 ```
 
-An example using a [Range](https://doc.rust-lang.org/std/ops/struct.Range.html) in a for loop.
+An example using a [Range](https://doc.rust-lang.org/std/ops/struct.Range.html) in a for loop:
 
 ```rust
 fn main() {
@@ -516,19 +516,297 @@ Ownership rules:
 * There can only be one owner at a time.
 * When the owner goes out of scope, the value will be dropped.
 
-Scope example.
+Scope example:
 
 ```rust
+// String pushed onto the stack
 {                      // s is not valid here, it’s not yet declared
     let s = "hello";   // s is valid from this point forward
 
     // do stuff with s
 }                      // this scope is now over, and s is no longer valid
 
+// String allocated on the heap
 {
     let s = String::from("hello"); // s is valid from this point forward
 
     // do stuff with s
 }                                  // this scope is now over, and s is no
-                                   // longer valid
+                                   // longer valid and "drop" is called
+```
+
+Simple values are stored on the stack and can easily be copied:
+
+```rust
+let x = 5;
+let y = x;
+```
+
+Complex values are stored on the heap and, following rule number 2 above, can only have one owner:
+
+```rust
+let s1 = String::from("hello");
+let s2 = s1; // This is a move, not a copy
+// s1 is no longer valid and cannot be used
+```
+
+Complex types can be cloned:
+
+```rust
+let s1 = String::from("hello");
+let s2 = s1.clone();
+// s1 is still valid
+```
+
+As a general rule, any group of simple scalar values can be Copied.
+
+* All the integer types, such as `u32`.
+* The Boolean type, bool, with values `true` and `false`.
+* All the floating point types, such as `f64`.
+* The character type, `char`.
+* Tuples, if they only contain types that are also Copy. For example, `(i32, i32)` is Copy, but `(i32, String)` is not.
+
+Passing a variable to a function will move or copy, just as assignment does:
+
+```rust
+fn main() {
+    let s = String::from("hello");  // s comes into scope
+
+    takes_ownership(s);             // s's value moves into the function...
+                                    // ... and so is no longer valid here
+
+    let x = 5;                      // x comes into scope
+
+    makes_copy(x);                  // x would move into the function,
+                                    // but i32 is Copy, so it’s okay to still
+                                    // use x afterward
+
+} // Here, x goes out of scope, then s. But because s's value was moved, nothing
+  // special happens.
+
+fn takes_ownership(some_string: String) { // some_string comes into scope
+    println!("{}", some_string);
+} // Here, some_string goes out of scope and `drop` is called. The backing
+  // memory is freed.
+
+fn makes_copy(some_integer: i32) { // some_integer comes into scope
+    println!("{}", some_integer);
+} // Here, some_integer goes out of scope. Nothing special happens.
+```
+
+Returning values from a function can also transfer ownership:
+
+```rust
+fn main() {
+    let s1 = gives_ownership();         // gives_ownership moves its return
+                                        // value into s1
+
+    let s2 = String::from("hello");     // s2 comes into scope
+
+    let s3 = takes_and_gives_back(s2);  // s2 is moved into
+                                        // takes_and_gives_back, which also
+                                        // moves its return value into s3
+} // Here, s3 goes out of scope and is dropped. s2 goes out of scope but was
+  // moved, so nothing happens. s1 goes out of scope and is dropped.
+
+fn gives_ownership() -> String {             // gives_ownership will move its
+                                             // return value into the function
+                                             // that calls it
+
+    let some_string = String::from("hello"); // some_string comes into scope
+
+    some_string                              // some_string is returned and
+                                             // moves out to the calling
+                                             // function
+}
+
+// takes_and_gives_back will take a String and return one
+fn takes_and_gives_back(a_string: String) -> String { // a_string comes into
+                                                      // scope
+
+    a_string  // a_string is returned and moves out to the calling function
+}
+```
+
+#### References and Borrowing
+
+References allow you to refer to some value without taking ownership of it.
+
+References are immutable by default.
+
+Rules of references:
+
+* At any given time, you can have either one mutable reference or any number of immutable references.
+* References must always be valid.
+
+The ampersands in the code below define references:
+
+```rust
+fn main() {
+    let s1 = String::from("hello");
+
+    // The `&s1` syntax lets us create a reference that refers to the value of s1 but does not own it.
+    let len = calculate_length(&s1);
+
+    println!("The length of '{}' is {}.", s1, len);
+}
+
+fn calculate_length(s: &String) -> usize { // s is a reference to a String
+    s.len()
+} // Here, s goes out of scope. But because it does not have ownership of what
+  // it refers to, nothing happens.
+```
+
+Using references as function parameters is called borrowing.
+
+References can be changed to be mutable:
+
+```rust
+fn main() {
+    let mut s = String::from("hello");
+
+    change(&mut s);
+}
+
+fn change(some_string: &mut String) {
+    some_string.push_str(", world");
+}
+```
+
+You can have only one mutable reference to a particular piece of data in a particular scope.
+
+This restriction allows for mutation but in a very controlled fashion.
+
+The benefit of having this restriction is that Rust can prevent data races at compile time. A data race is similar to a race condition and happens when these three behaviors occur:
+
+* Two or more pointers access the same data at the same time.
+* At least one of the pointers is being used to write to the data.
+* There’s no mechanism being used to synchronize access to the data.
+
+You can work around this restriction using curly brackets to create a new scope:
+
+```rust
+let mut s = String::from("hello");
+
+{
+    let r1 = &mut s;
+} // r1 goes out of scope here, so we can make a new reference with no problems.
+
+let r2 = &mut s;
+```
+
+You cannot have a mutable reference while we have an immutable one:
+
+```rust
+let mut s = String::from("hello");
+
+let r1 = &s; // Immutable reference: no problem
+let r2 = &s; // Immutable reference: no problem
+let r3 = &mut s; // Mutable reference: BIG PROBLEM
+
+println!("{}, {}, and {}", r1, r2, r3); // Mutable with immutable!!!
+```
+
+The following example works with a mix of immutable references and
+a mutable reference:
+
+```rust
+let mut s = String::from("hello");
+
+let r1 = &s; // no problem
+let r2 = &s; // no problem
+println!("{} and {}", r1, r2);
+// r1 and r2 are no longer used after this point
+
+let r3 = &mut s; // no problem
+println!("{}", r3);
+```
+
+In Rust the compiler guarantees that references will never be dangling references:
+
+```rust
+fn main() {
+    let reference_to_nothing = dangle();
+}
+
+fn dangle() -> &String { // dangle returns a reference to a String
+
+    let s = String::from("hello"); // s is a new String
+
+    &s // we return a reference to the String, s
+} // Here, s goes out of scope, and is dropped. Its memory goes away.
+  // Danger! Rust wont let you do this.
+```
+
+#### Slice Type
+
+Slices let you reference a contiguous sequence of elements in a collection rather than the whole collection.
+
+A string slice is a reference to part of a String, and it looks like this:
+
+```rust
+let s = String::from("hello world");
+
+let hello = &s[..5]; // Range supports dropping the first index if starting at 0
+let world = &s[6..11];
+let remainder = &s[12..]; // Range supports dropping the last index if it is the length
+let full = &s[..] // This is a slice of the entire string
+```
+
+The type that signifies “string slice” is written as `&str`:
+
+```rust
+fn first_word(s: &String) -> &str {
+    let bytes = s.as_bytes();
+
+    for (i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return &s[0..i];
+        }
+    }
+
+    &s[..]
+}
+```
+
+Better still, write the signature above using the following signature
+because it allows us to use the same function on both &String values and &str values:
+
+```rust
+fn main() {
+    let my_string = String::from("hello world");
+
+    // first_word works on slices of `String`s
+    let word = first_word(&my_string[..]);
+
+    let my_string_literal = "hello world";
+
+    // first_word works on slices of string literals
+    let word = first_word(&my_string_literal[..]);
+
+    // Because string literals *are* string slices already,
+    // this works too, without the slice syntax!
+    let word = first_word(my_string_literal);
+}
+
+// Note the change from &String to &str
+fn first_word(s: &str) -> &str {
+    let bytes = s.as_bytes();
+
+    for (i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return &s[0..i];
+        }
+    }
+
+    &s[..]
+}
+```
+
+Array slices work the same way:
+
+```rust
+let a = [1, 2, 3, 4, 5];
+
+let slice = &a[1..3];
 ```
