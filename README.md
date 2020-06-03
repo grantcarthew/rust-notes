@@ -393,9 +393,9 @@ fn plus_one(x: i32) -> i32 {
 ### Comments
 
 ```rust
-\\ Comment with two back slashes.
-\\ There is no block comment, just use multiple line comments.
-Let x = 5; \\ Comments can be on the same line as statements or expressions.
+// Comment with two back slashes.
+// There is no block comment, just use multiple line comments.
+Let x = 5; // Comments can be on the same line as statements or expressions.
 ```
 
 ### Control Flow
@@ -433,7 +433,7 @@ fn main() {
 
     println!("The value of number is: {}", number);
 
-    \\ Error: if and else have incompatible types
+    // Error: if and else have incompatible types
     let unknown = if condition { 5 } else { "string" }
 }
 ```
@@ -819,7 +819,7 @@ A struct, or structure, is a custom data type that lets you name and package tog
 An example to define and use a struct:
 
 ```rust
-\\ Define the User struct
+// Define the User struct
 struct User {
     username: String,
     email: String,
@@ -827,8 +827,8 @@ struct User {
     active: bool,
 }
 
-\\ Create an instance of the User struct
-\\ Note that the entire instance must be mutable
+// Create an instance of the User struct
+// Note that the entire instance must be mutable
 let mut user1 = User {
     email: String::from("someone@example.com"),
     username: String::from("someusername123"),
@@ -838,8 +838,8 @@ let mut user1 = User {
 
 user1.email = String::from("anotheremail@example.com");
 
-\\ As a constructor function
-\\ Using the field init shorthand syntax
+// As a constructor function
+// Using the field init shorthand syntax
 fn build_user(email: String, username: String) -> User {
     User {
         email,
