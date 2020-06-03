@@ -17,6 +17,7 @@ Table of Contents:
   * [Comments](#comments)
   * [Control Flow](#control-flow)
   * [Ownership](#ownership)
+  * [Struct](#struct)
 
 ## Frameworks and Libraries
 
@@ -809,4 +810,160 @@ Array slices work the same way:
 let a = [1, 2, 3, 4, 5];
 
 let slice = &a[1..3];
+```
+
+### Struct
+
+A struct, or structure, is a custom data type that lets you name and package together multiple related values that make up a meaningful group.
+
+An example to define and use a struct:
+
+```rust
+\\ Define the User struct
+struct User {
+    username: String,
+    email: String,
+    sign_in_count: u64,
+    active: bool,
+}
+
+\\ Create an instance of the User struct
+\\ Note that the entire instance must be mutable
+let mut user1 = User {
+    email: String::from("someone@example.com"),
+    username: String::from("someusername123"),
+    active: true,
+    sign_in_count: 1,
+};
+
+user1.email = String::from("anotheremail@example.com");
+
+\\ As a constructor function
+\\ Using the field init shorthand syntax
+fn build_user(email: String, username: String) -> User {
+    User {
+        email,
+        username,
+        active: true,
+        sign_in_count: 1,
+    }
+}
+
+// Using the struct update syntax to copy user1 details
+let user2 = User {
+    email: String::from("another@example.com"),
+    username: String::from("anotherusername567"),
+    ..user1
+};
+```
+
+Tuple structs have the added meaning that the struct name provides but don’t have names associated with their fields:
+
+```rust
+struct Color(i32, i32, i32);
+struct Point(i32, i32, i32);
+
+let black = Color(0, 0, 0);
+let origin = Point(0, 0, 0);
+```
+
+To print a struct use the `#[derive(Debug)]` annotation:
+
+```rust
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+fn main() {
+    let rect1 = Rectangle {
+        width: 30,
+        height: 50,
+    };
+
+    println!("rect1 is {:?}", rect1);  // One line
+    println!("rect1 is {:#?}", rect1); // Multiple lines
+}
+```
+
+A full example using a struct:
+
+```rust
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+fn main() {
+    let rect1 = Rectangle {
+        width: 30,
+        height: 50,
+    };
+
+    println!(
+        "The area of the rectangle is {} square pixels.",
+        area(&rect1)
+    );
+}
+
+fn area(rectangle: &Rectangle) -> u32 {
+    rectangle.width * rectangle.height
+}
+```
+
+Methods are different from functions in that they’re defined within the context of a struct, and their first parameter is always self, which represents the instance of the struct the method is being called on.
+
+Defining a method and an associated function on a struct:
+
+```rust
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+// Uses `self` reference
+impl Rectangle {
+    // Method using self
+    fn area(&self) -> u32 {
+        self.width * self.height
+    }
+
+    // Another method with an extra parameter
+    fn can_hold(&self, other: &Rectangle) -> bool {
+        self.width > other.width && self.height > other.height
+    }
+
+    // Associated function (does not use self)
+    fn square(size: u32) -> Rectangle {
+        Rectangle {
+            width: size,
+            height: size,
+        }
+    }
+}
+
+fn main() {
+    let rect1 = Rectangle {
+        width: 30,
+        height: 50,
+    };
+    let rect2 = Rectangle {
+        width: 10,
+        height: 40,
+    };
+    let rect3 = Rectangle {
+        width: 60,
+        height: 45,
+    };
+
+    println!(
+        "The area of the rectangle is {} square pixels.",
+        rect1.area()
+    );
+    println!("Can rect1 hold rect2? {}", rect1.can_hold(&rect2));
+    println!("Can rect1 hold rect3? {}", rect1.can_hold(&rect3));
+
+}
 ```
