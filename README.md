@@ -18,6 +18,8 @@ Table of Contents:
   * [Control Flow](#control-flow)
   * [Ownership](#ownership)
   * [Struct](#struct)
+  * [Enums](#enums)
+  * [Modules](#modules)]
 
 ## Frameworks and Libraries
 
@@ -966,4 +968,369 @@ fn main() {
     println!("Can rect1 hold rect3? {}", rect1.can_hold(&rect3));
 
 }
+```
+
+### Enums
+
+Without associated values:
+
+```rust
+enum IpAddrKind {
+    V4,
+    V6,
+}
+
+struct IpAddr {
+    kind: IpAddrKind,
+    address: String,
+}
+
+let home = IpAddr {
+    kind: IpAddrKind::V4,
+    address: String::from("127.0.0.1"),
+};
+
+let loopback = IpAddr {
+    kind: IpAddrKind::V6,
+    address: String::from("::1"),
+};
+```
+
+With associated values and no need for a struct:
+
+```rust
+// Using a string
+enum IpAddr {
+    V4(String),
+    V6(String),
+}
+
+let home = IpAddr::V4(String::from("127.0.0.1"));
+
+let loopback = IpAddr::V6(String::from("::1"));
+
+// Using integers and string
+enum IpAddr {
+    V4(u8, u8, u8, u8),
+    V6(String),
+}
+
+let home = IpAddr::V4(127, 0, 0, 1);
+
+let loopback = IpAddr::V6(String::from("::1"));
+```
+
+Enums can have methods defined on them:
+
+```rust
+impl Message {
+    fn call(&self) {
+        // method body would be defined here
+    }
+}
+
+let m = Message::Write(String::from("hello"));
+m.call();
+```
+
+Rust does not support `null`. This was a deliberate design decision for Rust to limit null’s pervasiveness and increase the safety of Rust code.
+
+There is an `Option<T>` enum from the standard library that can encode the concept of a value being present or absent. It is so popular you don't need to bring it into scope:
+
+```rust
+// The definition from the standard library
+enum Option<T> {
+    Some(T),
+    None,
+}
+
+// Using the Option enum with no need to bring Some or None into scope
+let some_number = Some(5);
+let some_string = Some("a string");
+let absent_number: Option<i32> = None;
+```
+
+#### match Operator
+
+The `match` operator allows you to compare a value against a series of patterns and then execute code
+based on which pattern matches:
+
+```rust
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter,
+}
+
+fn value_in_cents(coin: Coin) -> u8 {
+    match coin {
+        Coin::Penny => 1,
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Quarter => 25,
+    }
+}
+
+// An alternative with a `state` variable
+fn value_in_cents(coin: Coin) -> u8 {
+    match coin {
+        Coin::Penny => 1,
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Quarter(state) => {
+            println!("State quarter from {:?}!", state);
+            25
+        }
+    }
+}
+```
+
+Using `match` with `Option`:
+
+```rust
+fn main() {
+    fn plus_one(x: Option<i32>) -> Option<i32> {
+        match x {
+            None => None,
+            Some(i) => Some(i + 1),
+        }
+    }
+
+    let five = Some(5);
+    let six = plus_one(five);
+    let none = plus_one(None);
+}
+```
+
+The `match` operator supports the `_` pattern to match all other values:
+
+```rust
+fn main() {
+    let some_u8_value = 0u8;
+    match some_u8_value {
+        1 => println!("one"),
+        3 => println!("three"),
+        5 => println!("five"),
+        7 => println!("seven"),
+        _ => (),
+    }
+}
+```
+
+#### if let
+
+Think of `if let` as syntax sugar for a `match` that runs code when the value matches one pattern and then ignores all other values.
+
+```rust
+// Using `match` to count non-quarter coins
+let mut count = 0;
+match coin {
+    Coin::Quarter(state) => println!("State quarter from {:?}!", state),
+    _ => count += 1,
+}
+
+// Same using `if let`
+let mut count = 0;
+if let Coin::Quarter(state) = coin {
+    println!("State quarter from {:?}!", state);
+} else {
+    count += 1;
+}
+```
+
+### Modules
+
+Package rules:
+
+* Must contain at least one library or binary crate.
+* Only supports one library crate, no more.
+* Can contain as many binary crates as you would like.
+
+Modules:
+
+* Define Rust’s privacy boundary.
+* Group related definitions together and name why they’re related.
+* Define a module using the `mod` keyword.
+* Modules are private by default.
+* Use the `pub` keyword to define public resources.
+* Structs are private by default.
+* Enums are public by default
+
+Cargo uses the following convention:
+
+* `src/main.rs` for a binary crate.
+* `src/bin` directory for multiple binary crates.
+* `src/lib.rs` for a library crate.
+
+Here is an example of a library crate:
+
+```rust
+// File: src/lib.rs
+mod front_of_house {
+    // `pub` exposes `hosting` and `add_to_waitlist` to `eat_at_restaurant` below
+    pub mod hosting {
+        pub fn add_to_waitlist() {}
+
+        fn seat_at_table() {}
+    }
+
+    mod serving {
+        fn take_order() {}
+        fn serve_order() {}
+        fn take_payment() {}
+        mod back_of_house {
+            pub enum Appetizer {
+                Soup,
+                Salad,
+            }
+            fn fix_incorrect_order() {
+                cook_order();
+                // `super` references the parent module like `..` does on a file system.
+                super::serve_order();
+            }
+            fn cook_order() {}
+
+            // Exposing a struct
+            pub struct Breakfast {
+                pub toast: String,
+                seasonal_fruit: String,
+            }
+
+            impl Breakfast {
+                pub fn summer(toast: &str) -> Breakfast {
+                    Breakfast {
+                        toast: String::from(toast),
+                        seasonal_fruit: String::from("peaches"),
+                    }
+                }
+            }
+        }
+    }
+}
+// Resulting module tree
+// crate
+//  ├── front_of_house
+//  │   ├── hosting
+//  │   │   ├── add_to_waitlist
+//  │   │   └── seat_at_table
+//  │   └── serving
+//  │       ├── take_order
+//  │       ├── serve_order
+//  │       ├── take_payment
+//  │       └── back_of_house
+//  │           ├─ fix_incorrect_order
+//  │           └── cook_order
+//  └── eat_at_restaurant
+
+// Public function
+pub fn eat_at_restaurant() {
+    // Absolute path
+    crate::front_of_house::hosting::add_to_waitlist();
+
+    // Relative path
+    front_of_house::hosting::add_to_waitlist();
+
+    // Order a breakfast in the summer with Rye toast
+    let mut meal = back_of_house::Breakfast::summer("Rye");
+    // Change our mind about what bread we'd like
+    meal.toast = String::from("Wheat");
+    println!("I'd like {} toast please", meal.toast);
+
+    // The next line won't compile if we uncomment it; we're not allowed
+    // to see or modify the seasonal fruit that comes with the meal
+    // meal.seasonal_fruit = String::from("blueberries");
+
+    // Using the public enum
+    let order1 = back_of_house::Appetizer::Soup;
+    let order2 = back_of_house::Appetizer::Salad;
+}
+```
+
+Declare a module with only a semicolon after `mod` rather than using a block, tells Rust to load the contents of the module from another file with the same name as the module:
+
+```rust
+// src/main.rs
+mod other_file;
+```
+
+The `use` keyword saves us from using long absolute or relative paths.
+
+Rules for the path `use` keyword:
+
+* Use the parent path for functions.
+* Use the full path for enums and structs.
+
+```rust
+mod front_of_house {
+    pub mod hosting {
+        pub fn add_to_waitlist() {}
+    }
+}
+
+// Only bring the parent module into scope. Not the function. Saves confusion.
+use crate::front_of_house::hosting;
+
+pub fn eat_at_restaurant() {
+    hosting::add_to_waitlist();
+    hosting::add_to_waitlist();
+    hosting::add_to_waitlist();
+}
+```
+
+You can bring two modules into the same scope with the same name using the `as` keyword:
+
+```rust
+use std::fmt::Result;
+use std::io::Result as IoResult;
+
+fn function1() -> Result {
+    // --snip--
+}
+
+fn function2() -> IoResult<()> {
+    // --snip--
+}
+```
+
+You can re-export by combining `pub` and `use` to bring an item into scope making that item available for others:
+
+```rust
+mod front_of_house {
+    pub mod hosting {
+        pub fn add_to_waitlist() {}
+    }
+}
+
+pub use crate::front_of_house::hosting;
+
+pub fn eat_at_restaurant() {
+    hosting::add_to_waitlist();
+    hosting::add_to_waitlist();
+    hosting::add_to_waitlist();
+}
+```
+
+Other examples of the `use` keyword:
+
+```rust
+// Single `use` statements
+use rand::Rng;
+use std::cmp::Ordering;
+use std::io;
+
+// Equivelant using nested paths
+use rand::Rng;
+use std::{cmp::Ordering, io};
+
+// We can bring `io` and `Write` into scope
+use std::io;
+use std::io::Write;
+
+// Using one statement with the `self` keyword
+use std::io::{self, Write};
+
+// We could also bring all public items into scope
+// Glob can make it harder to tell what names are in scope
+use std::collections::*;
 ```
