@@ -20,6 +20,7 @@ Table of Contents:
   * [Struct](#struct)
   * [Enums](#enums)
   * [Modules](#modules)]
+  * [Testing](#testing)
 
 ## Frameworks and Libraries
 
@@ -1335,4 +1336,115 @@ use std::io::{self, Write};
 // We could also bring all public items into scope
 // Glob can make it harder to tell what names are in scope
 use std::collections::*;
+```
+
+### Testing
+
+Running tests:
+
+* Use `cargo test` to run tests in Rust.
+* Use `cargo test full_fn_name` to filter to a single test.
+* Use `cargo test part_fn_name` to filter to multiple tests that match the part name.
+* Use `cargo test -- --show-output` to see `println` messages in passing tests.
+* Use `cargo test -- --ignored` to run `#[ignore]` tests.
+
+Tests are defined using attributes:
+
+* The `#[cfg(test)]` annotation tells Rust to compile and run the test code only when you run cargo test.
+* The `#[test]` attribute indicates a test function.
+* The `#[should_panic]` attribute indicates a test function that should panic.
+* Use the optional `expected` parameter eg: `#[should_panic(expected = "Expected panic message here.")]`
+* Use `#[ignore]` attribute to ignore expensive tests.
+* In libraries, private functions can be tested by bringing them into scope.
+
+Integration tests:
+
+* Defined in a `tests` directory next to the `src` directory.
+* Do not need the `#[cfg(test)]` annotation.
+* Helper functions get defined in a file structure similar to `/tests/common/mod.rs`.
+
+The standard library provides assertion macros:
+
+* `assert` for boolean expressions.
+* `assert_eq` for value comparison.
+* `assert_ne` for not equal value comparison.
+* Arguments specified after the required arguments are passed to the `format!` macro.
+
+Common operators in tests include `==` and `!=` for comparison.
+
+Values being compared must implement the `PartialEq` and `Debug` traits:
+
+* Implement `PartialEq` to assert that values of those types are equal or not equal.
+* Implement `Debug` to print the values when the assertion fails.
+* Add the `#[derive(PartialEq, Debug)]` annotation to your `struct` or `enum` definition.
+
+```rust
+pub fn add_two(a: i32) -> i32 {
+    a + 2
+}
+
+pub fn greeting(name: &str) -> String {
+    String::from("Hello!")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() {
+        assert_eq!(2 + 2, 4);
+    }
+
+    #[test]
+    fn another() {
+        panic!("Make this test fail");
+    }
+    #[test]
+    fn it_adds_two() {
+        assert_eq!(4, add_two(2));
+    }
+
+    #[test]
+    fn greeting_contains_name() {
+        let result = greeting("Carol");
+        assert!(
+            result.contains("Carol"),
+            "Greeting did not contain name, value was `{}`",
+            result
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn greater_than_100() {
+        // Statements that should panic
+    }
+
+    #[test]
+    #[should_panic(expected = "Guess value must be less than or equal to 100")]
+    fn greater_than_100() {
+        // Statements that should panic
+    }
+
+}
+```
+
+Using the `Result<T, E>` in tests. You can’t use the `#[should_panic]` annotation on tests that use `Result<T, E>`. Instead, you should return an `Err` value directly when the test should fail:
+
+```rust
+#![allow(unused_variables)]
+fn main() {
+    #[cfg(test)]
+    mod tests {
+        #[test]
+        fn it_works() -> Result<(), String> {
+            if 2 + 2 == 4 {
+                Ok(())
+            } else {
+                Err(String::from("two plus two does not equal four"))
+            }
+        }
+    }
+}
 ```
