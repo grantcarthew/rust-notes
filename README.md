@@ -183,6 +183,8 @@ use std::cmp::Ordering;
 use rand::Rng;
 ```
 
+_Note: The [prelude](https://doc.rust-lang.org/std/prelude/index.html) is the list of things that Rust automatically imports into every Rust program._
+
 Rust requires a `main` entry point:
 
 ```rust
