@@ -19,7 +19,8 @@ Table of Contents:
   * [Ownership](#ownership)
   * [Struct](#struct)
   * [Enums](#enums)
-  * [Modules](#modules)]
+  * [Modules](#modules)
+  * [Generics and Traits](#generics-and-traits)
   * [Testing](#testing)
 
 ## Frameworks and Libraries
@@ -1336,6 +1337,369 @@ use std::io::{self, Write};
 // We could also bring all public items into scope
 // Glob can make it harder to tell what names are in scope
 use std::collections::*;
+```
+
+### Generics and Traits
+
+Because Rust compiles generic code into code that specifies the type in each instance, we pay no runtime cost for using generics. When the code runs, it performs just as it would if we had duplicated each definition by hand. The process of monomorphization makes Rust’s generics extremely efficient at runtime.
+
+Defining a function that uses generics:
+
+```rust
+fn largest<T>(list: &[T]) -> T {
+    let mut largest = list[0];
+
+    for &item in list {
+        if item > largest {
+            largest = item;
+        }
+    }
+
+    largest
+}
+
+fn main() {
+    let number_list = vec![34, 50, 25, 100, 65];
+
+    let result = largest(&number_list);
+    println!("The largest number is {}", result);
+
+    let char_list = vec!['y', 'm', 'a', 'q'];
+
+    let result = largest(&char_list);
+    println!("The largest char is {}", result);
+}
+```
+
+Define `structs` to use a generic type parameter:
+
+```rust
+struct Point<T> {
+    x: T,
+    y: T,
+}
+
+fn main() {
+    let integer = Point { x: 5, y: 10 };
+    let float = Point { x: 1.0, y: 4.0 };
+}
+```
+
+Define a Point `struct` where `x` and `y` are both generics but could have different types:
+
+```rust
+struct Point<T, U> {
+    x: T,
+    y: U,
+}
+
+fn main() {
+    let both_integer = Point { x: 5, y: 10 };
+    let both_float = Point { x: 1.0, y: 4.0 };
+    let integer_and_float = Point { x: 5, y: 4.0 };
+}
+```
+
+Define `enums` to hold generic data types in their variants:
+
+```rust
+enum Option<T> {
+    Some(T),
+    None,
+}
+```
+
+Define `enums` to use multiple generic types:
+
+```rust
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+```
+
+Implement methods on `structs` and `enums` and use generic types:
+
+```rust
+struct Point<T> {
+    x: T,
+    y: T,
+}
+
+impl<T> Point<T> {
+    fn x(&self) -> &T {
+        &self.x
+    }
+}
+
+// The mixup method supports multiple Point types
+impl<T, U> Point<T, U> {
+    fn mixup<V, W>(self, other: Point<V, W>) -> Point<T, W> {
+        Point {
+            x: self.x,
+            y: other.y,
+        }
+    }
+}
+
+fn main() {
+    let p = Point { x: 5, y: 10 };
+
+    println!("p.x = {}", p.x());
+
+    let p1 = Point { x: 5, y: 10.4 };
+    let p2 = Point { x: "Hello", y: 'c' };
+
+    let p3 = p1.mixup(p2);
+}
+```
+
+#### Traits
+
+We can implement a trait on a type only if either the trait or the type is local to our crate.
+
+```rust
+pub trait Summary {
+    fn summarize(&self) -> String;
+}
+
+pub struct NewsArticle {
+    pub headline: String,
+    pub location: String,
+    pub author: String,
+    pub content: String,
+}
+
+impl Summary for NewsArticle {
+    fn summarize(&self) -> String {
+        format!("{}, by {} ({})", self.headline, self.author, self.location)
+    }
+}
+
+pub struct Tweet {
+    pub username: String,
+    pub content: String,
+    pub reply: bool,
+    pub retweet: bool,
+}
+
+impl Summary for Tweet {
+    fn summarize(&self) -> String {
+        format!("{}: {}", self.username, self.content)
+    }
+}
+```
+
+We can define a default implementation for the `summarize` method:
+
+```rust
+pub trait Summary {
+    fn summarize(&self) -> String {
+        String::from("(Read more...)")
+    }
+}
+
+// No need to implement summarize
+impl Summary for NewsArticle {}
+```
+
+To use this version of `Summary`, we only need to define `summarize_author` when we implement the trait on a type:
+
+```rust
+pub trait Summary {
+    fn summarize_author(&self) -> String;
+
+    fn summarize(&self) -> String {
+        format!("(Read more from {}...)", self.summarize_author())
+    }
+}
+
+impl Summary for Tweet {
+    fn summarize_author(&self) -> String {
+        format!("@{}", self.username)
+    }
+}
+```
+
+To define traits as parameters:
+
+```rust
+// Using the `impl trait` syntax
+pub fn notify(item: &impl Summary) {
+    println!("Breaking news! {}", item.summarize());
+}
+
+pub fn notify(item1: &impl Summary, item2: &impl Summary) {
+    println!("Breaking news! {}", item2.summarize());
+}
+
+// Or using `trait bound` syntax
+pub fn notify<T: Summary>(item: &T) {
+    println!("Breaking news! {}", item.summarize());
+}
+
+// This is forcing item1 and item2 to be the same type or T
+pub fn notify<T: Summary>(item1: &T, item2: &T) {
+    println!("Breaking news! {}", item2.summarize());
+}
+
+// Multiple trait bounds using the `+` syntax
+pub fn notify(item: &(impl Summary + Display)) {}
+pub fn notify<T: Summary + Display>(item: &T) {}
+
+// Using the `where` clause to simplify the signature
+fn some_function<T, U>(t: &T, u: &U) -> i32
+    where T: Display + Clone,
+          U: Clone + Debug
+{}
+```
+
+Returning types that implement traits:
+
+```rust
+// You can only return impl Trait if you’re returning a single type
+fn returns_summarizable() -> impl Summary {
+    Tweet {
+        username: String::from("horse_ebooks"),
+        content: String::from(
+            "of course, as you probably already know, people",
+        ),
+        reply: false,
+        retweet: false,
+    }
+}
+```
+
+Example using the `largest` function:
+
+```rust
+fn largest<T: PartialOrd + Copy>(list: &[T]) -> T {
+    let mut largest = list[0];
+
+    for &item in list {
+        if item > largest {
+            largest = item;
+        }
+    }
+
+    largest
+}
+
+fn main() {
+    let number_list = vec![34, 50, 25, 100, 65];
+
+    let result = largest(&number_list);
+    println!("The largest number is {}", result);
+
+    let char_list = vec!['y', 'm', 'a', 'q'];
+
+    let result = largest(&char_list);
+    println!("The largest char is {}", result);
+}
+```
+
+Using trait bounds to conditionally implement methods:
+
+```rust
+use std::fmt::Display;
+
+struct Pair<T> {
+    x: T,
+    y: T,
+}
+
+impl<T> Pair<T> {
+    fn new(x: T, y: T) -> Self {
+        Self { x, y }
+    }
+}
+
+impl<T: Display + PartialOrd> Pair<T> {
+    fn cmp_display(&self) {
+        if self.x >= self.y {
+            println!("The largest member is x = {}", self.x);
+        } else {
+            println!("The largest member is y = {}", self.y);
+        }
+    }
+}
+```
+
+#### Lifetimes
+
+Lifetime annotations in function signatures:
+
+```rust
+// Input lifetimes
+fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
+```
+
+Lifetime annotations in struct definitions:
+
+```rust
+// Input lifetimes
+struct ImportantExcerpt<'a> {
+    part: &'a str,
+}
+
+fn main() {
+    let novel = String::from("Call me Ishmael. Some years ago...");
+    let first_sentence = novel.split('.').next().expect("Could not find a '.'");
+    let i = ImportantExcerpt {
+        part: first_sentence,
+    };
+}
+```
+
+Lifetime annotations in method definitions:
+
+```rust
+impl<'a> ImportantExcerpt<'a> {
+    fn level(&self) -> i32 {
+        3
+    }
+}
+
+impl<'a> ImportantExcerpt<'a> {
+    fn announce_and_return_part(&self, announcement: &str) -> &str {
+        println!("Attention please: {}", announcement);
+        self.part
+    }
+}
+```
+
+Static lifetime:
+
+```rust
+let s: &'static str = "I have a static lifetime.";
+```
+
+Generic type parameters, trait bounds, and lifetimes all in one function:
+
+```rust
+use std::fmt::Display;
+
+fn longest_with_an_announcement<'a, T>(
+    x: &'a str,
+    y: &'a str,
+    ann: T,
+) -> &'a str
+where
+    T: Display,
+{
+    println!("Announcement! {}", ann);
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
 ```
 
 ### Testing
